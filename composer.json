@@ -1,0 +1,16 @@
+{
+    "name": "gafaradetunji/filemanager",
+    "description": "File upload and download application",
+    "authors": [
+        {
+            "name": "Gafar Adetunji",
+            "email": "gafaradetunji@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Framework\\": "Framework/",
+            "App\\": "App/"
+        }
+    }
+}
