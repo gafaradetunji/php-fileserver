@@ -1,4 +1,8 @@
 <?php
+require './helper.php';
+require baseUrl('model/Response.php');
+
+// $response = new Response();
 
 $sock = socket_create(AF_INET, SOCK_DGRAM, 0);
 
@@ -22,24 +26,51 @@ if (!is_file($filePath)) {
     die("File not found. Please enter a valid file path.\n");
 }
 
-$fileContent = file_get_contents($filePath);
-$fileSize = strlen($fileContent);
-
 $filename = pathinfo($filePath, PATHINFO_BASENAME);
 
-$message = "file:{$filename}:";
+// Open the file in binary mode
+$file = fopen($filePath, 'rb');
 
-$chunkSize = 512;
-$chunks = str_split($fileContent, $chunkSize);
+// Set the chunk size
+$chunkSize = 4096; // Adjust as needed
+$bytesSent = 0;
+$fileSize = strlen($filePath);
 
-foreach ($chunks as $chunk) {
-    $message .= $chunk;
+while (!feof($file)) {
+    // Read a chunk of data from the file
+    
+    $chunk = fread($file, $chunkSize);
+
+    // Create the message with the current chunk
+    // check if the chunk is greater than the file size
+    if($bytesSent >= filesize($filePath)) {
+        $littleChunk = min($bytesSent , filesize($filePath));
+        $message = "file:{$filename}:{$littleChunk}";
+    }
+    else {
+        $message = "file:{$filename}:{$chunk}";
+    }
+
+    // Sends the message to the server
     $send = socket_sendto($sock, $message, strlen($message), 0, $serverAddress, $serverPort);
 
     if (!$send) {
         die('Could not send file data');
     }
+
+    // Tracks the file sending information
+    $bytesSent += $chunkSize;
+
+    // Calculate the progress percentage
+    echo "Sending {$filePath} is " . min($bytesSent, filesize($filePath)) . " bytes out of " . filesize($filePath) . "\n";
+    if(feof($file)){
+        echo "File transfer complete. File size: " . number_format(filesize($filePath)) . " bytes\n";
+    }
+    
+    usleep(100000);
 }
+
+fclose($file);
 
 socket_close($sock);
 
