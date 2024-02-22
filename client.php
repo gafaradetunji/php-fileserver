@@ -23,13 +23,14 @@ echo SEND_FILE . ": Send a file to the server\n";
 echo DOWNLOAD_FILE . ": Download a file from the server\n";
 
 $option = trim(fgets(STDIN));
-$request = $option;
+$request = (string) $option;
 socket_sendto($sock, $request, strlen($request), 0, $serverAddress, $serverPort);
 
 switch ($option) {
     case '1':
         // Request the list of files from the server
         $request = '1';
+        echo "Sending request: $request\n";
         socket_sendto($sock, $request, strlen($request), 0, $serverAddress, $serverPort);
 
         // Receive the list of files from the server
@@ -121,10 +122,16 @@ switch ($option) {
 
         // Receive the file content from the server
         $fileContent = '';
-        socket_recvfrom($sock, $fileContent, 4096, 0, $serverAddress, $serverPort);
+        $chunk = '';
+        do {
+            socket_recvfrom($sock, $chunk, 1024, 0, $serverAddress, $serverPort);
+            $fileContent .= $chunk;
+        } while (!empty($chunk)); // Continue receiving until all chunks are received
 
-        // Decode and save the file content
+        // Decode the entire received content
         $decodedContent = base64_decode($fileContent);
+
+        // Save the decoded content to the file
         $downloadedFilePath = "downloaded_{$filenameToDownload}";
         file_put_contents($downloadedFilePath, $decodedContent);
 
