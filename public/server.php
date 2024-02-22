@@ -57,33 +57,40 @@ while (true) {
 
             case '2':
                 echo "I am {$requestType}\n";
-                // Handle request to receive a file
-                $receive_socket = socket_recvfrom($socket, $buf, 4096, 0, $from, $port);
-                if($receive_socket){
-                    $bytesReceived = 0;
-                    echo "Receiving...";
-                    list($dataType, $filename, $fileChunk) = explode(':', $buf, 3);
-                    $filePath = "{$receivedFilesDir}/{$filename}";
-                    $file = fopen($filePath, 'ab');
-    
-                    if ($file) {
+
+                $bytesReceived = 0;
+                while (true) {
+                    $receive_socket = socket_recvfrom($socket, $buf, 4096, 0, $from, $port);
+
+                    if ($receive_socket) {
+                        list($dataType, $filename, $fileChunk) = explode(':', $buf, 3);
+                        $filePath = "{$receivedFilesDir}/{$filename}";
+                        // die($filePath);
+                        $file = fopen($filePath, 'ab');
+                        if (!$file) {
+                            echo "Error opening file for writing\n";
+                            // You might want to add additional error handling here
+                            exit;
+                        }
+
+                        if ($fileChunk === 'EOF') {
+                            // End of file reached
+                            fclose($file);
+                            echo "\nFile transfer complete. File size: " . number_format(filesize($filePath)) . " bytes\n";
+                            break;
+                        }
+
                         fwrite($file, $fileChunk);
-                        // fclose($file);
                         $bytesReceived += strlen($fileChunk);
-    
+
                         // Display progress information
                         echo "\rReceiving file: " . number_format($bytesReceived) . " bytes received";
-                        
-                        // Check if the transfer is complete
-                        if ($bytesReceived == filesize($filePath)) {
-                            echo "\nFile transfer complete. File size: " . number_format(filesize($filePath)) . " bytes\n";
-                            clearstatcache();
-                            echo "\nSaved to {$filePath}\n";
-                        }
                     } else {
-                        echo "Error opening file for writing\n";
+                        echo "Could not receive data \n";
+                        break;
                     }
                 }
+
                 break;
 
             default:
