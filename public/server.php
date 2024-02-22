@@ -49,50 +49,16 @@ while (true) {
                 socket_sendto($socket, $filesInfoStr, strlen($filesInfoStr), 0, $from, $port);
                 break;
 
+            case '2':
+                echo "I am {$requestType}\n";
+                $response->receiveFile();
+                break;    
+
             case '3':
                 echo "I am {$requestType}\n";
                 // Handle request to download a file
                $response->sendFile();
                 break;
-
-            case '2':
-                echo "I am {$requestType}\n";
-
-                $bytesReceived = 0;
-                while (true) {
-                    $receive_socket = socket_recvfrom($socket, $buf, 4096, 0, $from, $port);
-
-                    if ($receive_socket) {
-                        list($dataType, $filename, $fileChunk) = explode(':', $buf, 3);
-                        $filePath = "{$receivedFilesDir}/{$filename}";
-                        // die($filePath);
-                        $file = fopen($filePath, 'ab');
-                        if (!$file) {
-                            echo "Error opening file for writing\n";
-                            // You might want to add additional error handling here
-                            exit;
-                        }
-
-                        if ($fileChunk === 'EOF') {
-                            // End of file reached
-                            fclose($file);
-                            echo "\nFile transfer complete. File size: " . number_format(filesize($filePath)) . " bytes\n";
-                            break;
-                        }
-
-                        fwrite($file, $fileChunk);
-                        $bytesReceived += strlen($fileChunk);
-
-                        // Display progress information
-                        echo "\rReceiving file: " . number_format($bytesReceived) . " bytes received";
-                    } else {
-                        echo "Could not receive data \n";
-                        break;
-                    }
-                }
-
-                break;
-
             default:
                 echo "Unknown request type: {$requestType}\n";
         }

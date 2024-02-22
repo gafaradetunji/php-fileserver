@@ -65,44 +65,11 @@ switch ($option) {
 
         $filename = pathinfo($filePath, PATHINFO_BASENAME);
 
-        // Open the file in binary mode
         $file = fopen($filePath, 'rb');
 
-        // Set the chunk size
-        $chunkSize = 4096; // Adjust as needed
+        $chunkSize = 4096;
         $bytesSent = 0;
         $fileSize = filesize($filePath);
-
-        // while (!feof($file)) {
-        //     // Read a chunk of data from the file
-        //     $chunk = fread($file, $chunkSize);
-
-        //     // Create the message with the current chunk
-        //     if ($bytesSent >= $fileSize) {
-        //         $littleChunk = min($bytesSent, $fileSize);
-        //         $message = "file:{$filename}:{$littleChunk}";
-        //     } else {
-        //         $message = "file:{$filename}:{$chunk}";
-        //     }
-
-        //     // Send the message to the server
-        //     $send = socket_sendto($sock, $message, strlen($message), 0, $serverAddress, $serverPort);
-
-        //     if (!$send) {
-        //         die('Could not send file data');
-        //     }
-
-        //     // Track the file sending information
-        //     $bytesSent += $chunkSize;
-
-        //     // Calculate the progress percentage
-        //     echo "Sending {$filePath} is " . min($bytesSent, $fileSize) . " bytes out of " . $fileSize . "\n";
-        //     if (feof($file)) {
-        //         echo "File transfer complete. File size: " . number_format($fileSize) . " bytes\n";
-        //     }
-
-        //     usleep(100000);
-        // }
 
         while (!feof($file)) {
             // Read a chunk of data from the file
@@ -132,7 +99,6 @@ switch ($option) {
             usleep(100000);
         }
         
-        // Send EOF indicator
         $eofMessage = "file:{$filename}:EOF";
         socket_sendto($sock, $eofMessage, strlen($eofMessage), 0, $serverAddress, $serverPort);
         
