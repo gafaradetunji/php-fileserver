@@ -7,6 +7,11 @@ $from = $response->getIp();
 $port = $response->getPort();
 $socket = $response->getSocket();
 
+define('GET_FILES_LIST', '1');
+define('SEND_FILE', '2');
+define('DOWNLOAD_FILE', '3');
+
+
 $receivedFilesDir = 'received_files';
 
 // Check if the directory exists, if not, create it
@@ -14,46 +19,51 @@ if (!is_dir($receivedFilesDir)) {
     mkdir($receivedFilesDir, 0777, true);
 }
 
-$bytesReceived = 0;
-
 echo "Waiting for data... \n";
 while (true) {
-
     // Receive data from the client 
-    $receive_socket = socket_recvfrom($socket, $buf, 4096, 0, $from, $port);
-    
+    $receive_socket = socket_recvfrom($socket, $requestType, 4096, 0, $from, $port);
+
     if ($receive_socket) {
-        list($dataType, $filename, $fileChunk) = explode(':', $buf, 3);
+        // list($requestType, $filename, $littleChunk) = explode(':', $buf, 3);
 
-        switch ($dataType) {
-            case 'file':
-                // echo "Received file data from {$from}:{$port}\n";
+        switch ($requestType) {
+            case '1':
+                // Handle request to get the list of files
+                $response->getFilesList();
+                break;
 
+            case '3':
+               $response->sendFile();
+                break;
+
+            case '2':
+                // Handle file transfer
+                list($filename, $fileChunk) = explode(':', $data, 2);
                 $filePath = "{$receivedFilesDir}/{$filename}";
-                $file = fopen($filePath, 'ab'); 
+                $file = fopen($filePath, 'ab');
 
                 if ($file) {
                     fwrite($file, $fileChunk);
                     fclose($file);
-                    $bytesReceived += strlen($fileChunk);
+                    $bytesReceived = filesize($filePath);
 
                     // Display progress information
                     echo "\rReceiving file: " . number_format($bytesReceived) . " bytes received";
+                    
                     // Check if the transfer is complete
-                    if (filesize($filePath)) {
+                    if ($bytesReceived == filesize($filePath)) {
                         echo "\nFile transfer complete. File size: " . number_format(filesize($filePath)) . " bytes\n";
                         clearstatcache();
                         echo "\nSaved to {$filePath}\n";
                     }
-                    // echo "FileSize is: " . filesize($filePath) . " bytes\n";
-
                 } else {
                     echo "Error opening file for writing\n";
                 }
-                
                 break;
-                default:
-                echo "Unknown data type: {$dataType}\n";
+
+            default:
+                echo "Unknown request type: {$requestType}\n";
         }
     } else {
         echo "Could not receive data \n";
