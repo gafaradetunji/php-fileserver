@@ -78,7 +78,7 @@ class Response {
     // }
 
     public function sendFile() {
-        $receive_download_file = socket_recvfrom($this->socket, $data, 4096, 0, $this->ip, $this->port);
+        $receive_download_file = socket_recvfrom($this->socket, $data, 1024, 0, $this->ip, $this->port);
         
         if($receive_download_file) {
             $requestedFile = trim($data);
@@ -86,11 +86,14 @@ class Response {
             $filePath = 'public/' .$this->received_file . '/' .$requestedFile;
             $filePath = baseUrl($filePath);
             $chunkSize = 1024;
-            var_dump($filePath);
+            // var_dump($filePath);
 
             if (file_exists($filePath)) {
-                // Read the file content
                 $file = fopen($filePath, 'rb');
+                if (!$file) {
+                    echo "Error opening file: {$filePath}\n";
+                    exit;
+                }
 
                 $bytesSent = 0;
                 $fileSize = filesize($filePath);
@@ -98,8 +101,9 @@ class Response {
                 while (!feof($file)) {
                     $chunk = fread($file, $chunkSize);
                     $encodedChunk = base64_encode($chunk);
+                    $message = "file:{$requestedFile}:{$encodedChunk}";
 
-                    $sent = socket_sendto($this->socket, $encodedChunk, strlen($encodedChunk), 0, $this->ip, $this->port);
+                    $sent = socket_sendto($this->socket, $message, strlen($message), 0, $this->ip, $this->port);
                     if (!$sent) {
                         echo "Error sending chunk: \n";
                         break;
@@ -107,6 +111,13 @@ class Response {
 
                     $bytesSent += $chunkSize;
                     echo "Sent $bytesSent of $fileSize bytes\n";
+
+                    if (feof($file)) {
+                        socket_sendto($this->socket, 'file:EOF:', strlen('file:EOF:'), 0, $this->ip, $this->port);
+                        echo "File transfer complete. File size: " . number_format($fileSize) . " bytes\n";
+                    }
+            
+                    usleep(100000);
                 }
 
                 fclose($file);
@@ -156,3 +167,11 @@ class Response {
 
     }
 }
+
+// do {
+        //     // echo "receiving...";
+        //     $chunk = '';
+        //     socket_recvfrom($sock, $chunk, 1024, 0, $serverAddress, $serverPort);
+        //     $fileContent .= $chunk;
+        //     var_dump($chunk);
+        // } while (!empty($chunk));

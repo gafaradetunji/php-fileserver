@@ -120,20 +120,45 @@ switch ($option) {
 
         // Receive the file content from the server
         $fileContent = '';
-        $chunk = '';
-        do {
-            socket_recvfrom($sock, $chunk, 1024, 0, $serverAddress, $serverPort);
-            $fileContent .= $chunk;
-        } while (!empty($chunk)); // Continue receiving until all chunks are received
+        $bytesReceived = 0;
+        while(true) {
+            $chunk = '';
+            $receive = socket_recvfrom($sock, $buf, 1024, 0, $serverAddress, $serverPort);
+            if ($receive === false) {
+                echo "Error receiving file content\n";
+                break;
+            }
 
-        // Decode the entire received content
-        $decodedContent = base64_decode($fileContent);
+            if($receive) {
+                $explodedData = explode(':', $buf, 3);
+                if($explodedData >= 3){
+                    list($dataType, $filename, $filechunk) = explode(':', $buf, 3);
+                    // var_dump($dataType, $filename, $filechunk);
+                    $filePath = $filename;
+                    $file = fopen($filePath, 'ab');
+                    if (!$file) {
+                        fclose($file);
+                        echo "Error opening file for writing\n";
+                        exit;
+                    }
+                    if($filechunk === 'EOF') {
+                        echo "File transfer complete. File size: " . number_format(strlen($fileContent)) . " bytes\n";
+                        break;
+                    }
+                    // $fileContent .= base64_decode($chunk);
+                    $chunk = base64_decode($filechunk);
+                    fwrite($file, $chunk);
+                    $bytesReceived += strlen($chunk);
 
-        // Save the decoded content to the file
-        $downloadedFilePath = "downloaded_{$filenameToDownload}";
-        file_put_contents($downloadedFilePath, $decodedContent);
-
-        echo "File downloaded and saved to: {$downloadedFilePath}\n";
+                    // Display progress information
+                    echo "\rReceiving file: " . number_format($bytesReceived) . " bytes received";
+                    if(feof($file)) {
+                        fclose($file);
+                        echo "transfer complete\n";
+                    }
+                }
+            }
+        }
 
         break;
 
