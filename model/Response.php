@@ -113,7 +113,7 @@ class Response {
                     echo "Sent $bytesSent of $fileSize bytes\n";
 
                     if (feof($file)) {
-                        socket_sendto($this->socket, 'file:EOF:', strlen('file:EOF:'), 0, $this->ip, $this->port);
+                        // socket_sendto($this->socket, 'file:EOF:', strlen('file:EOF:'), 0, $this->ip, $this->port);
                         echo "File transfer complete. File size: " . number_format($fileSize) . " bytes\n";
                     }
             

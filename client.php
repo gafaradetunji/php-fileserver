@@ -159,7 +159,7 @@ switch ($option) {
                 }
             }
         }
-
+        echo "Transfer complete\n";
         break;
 
     default:
